@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 type Database struct {
@@ -14,10 +15,18 @@ type Database struct {
 }
 
 type Interface interface {
+	DbHealth() bool
+	FindAll(condition expression.Expression, tableName string) (response *dynamodb.ScanOutput, err error)
+	FindOne(condition map[string]interface{}, tableName string) (*dynamodb.GetItemOutput, error)
+	CreateOrUpdate(entity map[string]interface{}, tableName string) (*dynamodb.PutItemOutput, error)
+	Delete(condition map[string]interface{}, tableName string) (*dynamodb.DeleteItemOutput, error)
 }
 
-func NewAdapter() Interface {
-
+func NewAdapter(conn *dynamodb.DynamoDB) Interface {
+	return &Database{
+		connection: conn,
+		logMode:    false,
+	}
 }
 
 func (db *Database) DbHealth() bool {
@@ -28,7 +37,19 @@ func (db *Database) DbHealth() bool {
 	return true
 }
 
-func (db *Database) FindAll() {}
+func (db *Database) FindAll(condition expression.Expression, tableName string) (response *dynamodb.ScanOutput, err error) {
+	input := &dynamodb.ScanInput{
+		ExpressionAttributeNames:  condition.Names(),
+		ExpressionAttributeValues: condition.Values(),
+		FilterExpression:          condition.Filter(),
+		ProjectionExpression:      condition.Projection(),
+		TableName:                 aws.String(tableName),
+	}
+	db.connection.ScanPages(input, func(page *dynamodb.ScanOutput, lastPage bool) bool {
+		return true
+	})
+	return
+}
 
 func (db *Database) FindOne(condition map[string]interface{}, tableName string) (*dynamodb.GetItemOutput, error) {
 	parsedCondition, err := dynamodbattribute.MarshalMap(condition)
