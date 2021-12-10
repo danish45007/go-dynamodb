@@ -1,7 +1,7 @@
 package routes
 
 import (
-	ServiceConfig "github.com/danish45007/go-dynamodb/config"
+	"github.com/danish45007/go-dynamodb/config"
 	"github.com/danish45007/go-dynamodb/internal/repository/adapter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -14,7 +14,7 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		config: NewConfig().SetTimeOut(ServiceConfig.GetConfig().timeout),
+		config: NewConfig().SetTimeOut(config.GetConfig().Timeout),
 		router: chi.NewRouter(),
 	}
 }
